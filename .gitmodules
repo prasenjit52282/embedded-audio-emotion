@@ -1,3 +1,6 @@
 [submodule "emlearn"]
 	path = emlearn
 	url = https://github.com/prasenjit52282/emlearn.git
+[submodule "webdemo"]
+	path = webdemo
+	url = https://github.com/prasenjit52282/webdemo.git
