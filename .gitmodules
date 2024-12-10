@@ -1,0 +1,3 @@
+[submodule "emlearn"]
+	path = emlearn
+	url = https://github.com/prasenjit52282/emlearn.git
