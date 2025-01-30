@@ -16,7 +16,7 @@ pip install -r requirements.txt
 ```
 
 # Dataset
-Download the dataset required for training and testing from Kaggle. Ensure that the data is structured as follows:
+Download the dataset required for training and testing from [Kaggle](https://www.kaggle.com/datasets/dmitrybabko/speech-emotion-recognition-en). Ensure that the data is structured as follows:
 ```
 embedded-audio-emotion
 └──speech-emotion-recognition-en
