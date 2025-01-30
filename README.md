@@ -31,11 +31,11 @@ After downloading the dataset and organizing it in the specified structure, gene
 ```bash
 python dataset_generator.py
 ``` 
-This script will produce two files:
+This script will produce two files inside `generated_dataset` directory:
 
-audio_dataframe.csv
+- `audio_dataframe.csv`
 
-extracted_acoustic_features.csv
+- `extracted_acoustic_features.csv`
 
 These files will serve as inputs for training the models.
 
@@ -44,7 +44,7 @@ To train the emotion recognition models, use the generated dataset and run the f
 ```bash
 python train.py generated_dataset/extracted_acoustic_features.csv
 ```
-The trained models will be saved in the models directory.
+The trained models will be saved in the `models` directory.
 
 # Using the Models to Test Audio
 Once the models are trained, you can test the emotion recognition on various audio files. Use the following command:
@@ -52,6 +52,11 @@ Once the models are trained, you can test the emotion recognition on various aud
 python predictor.py <audio_file_path> <model_path>
 ```
 Replace <audio_file_path> with the path to the audio file you want to test and <model_path> with the path to the trained model.
+
+A demo example is as follows
+```bash
+python predictor.py ./demo_audio_files/DC_h05.wav ./models/RandomForestClassifier
+```
 
 # Directory Structure
 The project directory is organized as follows:
