@@ -79,3 +79,12 @@ embedded-audio-emotion
 └── train.py
 ```
 
+# Reference
+To refer the Codebase, please cite the following work.
+
+BibTex Reference:
+```
+This work has been accepted as a poster paper in IEEE PerCom 2025 (Work-in-Progress Track).
+The citation is comming soon.
+```
+For questions and general feedback, contact [Prasenjit Karmakar](https://prasenjit52282.github.io/).
