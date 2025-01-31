@@ -3,3 +3,4 @@
 *.ipynb
 models/*
 generated_dataset/*
+__pycache__
