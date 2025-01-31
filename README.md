@@ -69,10 +69,7 @@ embedded-audio-emotion
 └── dataset_generator.py
 └── em_model.py
 └── extractor.py
-└── modeling.py
-└── power_profile.py
 └── predictor.py
-└── processing.py
 └── README.md
 └── requirements.txt
 └── train.py
