@@ -1,14 +1,33 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import joblib
-from sklearn.utils import all_estimators
-from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
 import warnings
 import sys
 import os
+import joblib
+import pandas as pd
+from sklearn.utils import all_estimators
+from sklearn.model_selection import train_test_split, StratifiedKFold
+import pandas as pd
+import warnings
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_validate
+from sklearn.metrics import make_scorer, precision_score, recall_score, f1_score
+
+plt.rcParams.update({
+    'figure.figsize': (7,5),        # Set default figure size (width, height) in inches
+    'axes.labelsize': 19,            # Font size for x and y labels
+    'xtick.labelsize': 19,           # Font size for x-axis ticks
+    'ytick.labelsize': 19,           # Font size for y-axis ticks
+    'axes.labelweight': 'bold'
+})
+
+scoring = {
+    'accuracy': 'accuracy',
+    'precision': make_scorer(precision_score, average='weighted'),
+    'recall': make_scorer(recall_score, average='weighted'),
+    'f1': make_scorer(f1_score, average='weighted')
+}
 
 MODELS_DIRECTORY = "models"
 # Suppress warnings
@@ -22,13 +41,15 @@ class ModelEvaluator:
         self.random_state = random_state
         self.df = pd.read_csv(data_path).dropna()
         self.X = self.df.drop(target_column, axis=1)
+        self.df[target_column]=self.df[target_column].apply(str.capitalize)
         self.y = self.df[target_column]
         
-        self.best_models = best_models or [
-            "ExtraTreesClassifier", "RandomForestClassifier", "BaggingClassifier",
-            "LinearDiscriminantAnalysis", "QuadraticDiscriminantAnalysis", 
-            "RidgeClassifier", "DecisionTreeClassifier"
-        ]
+        self.best_models = best_models or ["RandomForestClassifier", "ExtraTreesClassifier",
+                                           "BaggingClassifier","QuadraticDiscriminantAnalysis",
+                                           "LinearDiscriminantAnalysis","RidgeClassifier",
+                                           "DecisionTreeClassifier"]
+        all_classifiers = dict(all_estimators(type_filter="classifier"))
+        self.selected_models={name:all_classifiers[name] for name in self.best_models}
         self.results = []
         self.all_models = []
         
@@ -38,68 +59,64 @@ class ModelEvaluator:
         )
         
     def train_models(self):
-        all_classifiers = all_estimators(type_filter="classifier")
         kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=self.random_state)
         # print(all_classifiers)
-        os.makedirs(MODELS_DIRECTORY, mode=0o777, exist_ok=False)
-        for name, Classifier in all_classifiers:
-            if name not in self.best_models:
-                continue
-            try:
-                print(name)
-                model = Classifier()
-                self._cross_validate_and_evaluate(model, name, kf)
-                
-            except Exception as e:
-                print(f"Skipping {name} due to error: {e}")
-    
-    def _cross_validate_and_evaluate(self, model, model_name, kf):
-        # Cross-validation on training set
-        accuracy_scores = cross_val_score(model, self.X_train, self.y_train, cv=kf, scoring='accuracy')
-        f1_scores = cross_val_score(model, self.X_train, self.y_train, cv=kf, scoring='f1_weighted')
-        precision_scores = cross_val_score(model, self.X_train, self.y_train, cv=kf, scoring='precision_weighted')
-        recall_scores = cross_val_score(model, self.X_train, self.y_train, cv=kf, scoring='recall_weighted')
-        
-        # Train the model and make predictions
-        model.fit(self.X_train, self.y_train)
-        y_pred = model.predict(self.X_test)
-        self.all_models.append(model)
-        self.save_model(model,f'{MODELS_DIRECTORY}/'+model_name)
-        # Confusion matrix
-        # self._plot_confusion_matrix(model, model_name, y_pred)
-        
-        # Test metrics
-        test_accuracy_scores = cross_val_score(model, self.X_test, self.y_test, cv=kf, scoring='accuracy')
-        test_accuracy_mean = test_accuracy_scores.mean()
-        test_accuracy_std = test_accuracy_scores.std()
-        test_f1 = f1_score(self.y_test, y_pred, average='weighted')
-        test_precision = precision_score(self.y_test, y_pred, average='weighted')
-        test_recall = recall_score(self.y_test, y_pred, average='weighted')
-        
-        # Store the results
-        self.results.append({
-            "Model": model_name,
-            "Train Accuracy (Mean)": accuracy_scores.mean(),
-            "Train Accuracy (Std)": accuracy_scores.std(),
-            "Train F1-score": f1_scores.mean(),
-            "Train Precision": precision_scores.mean(),
-            "Train Recall": recall_scores.mean(),
-            "Test Accuracy (Mean)": test_accuracy_mean,
-            "Test Accuracy (Std)": test_accuracy_std,
-            "Test F1-score": test_f1,
-            "Test Precision": test_precision,
-            "Test Recall": test_recall
-        })
-        print(f'{model_name}: Train Acc {accuracy_scores.mean():.3f}, Test Acc {test_accuracy_mean:.3f}, Test Std {test_accuracy_std:.3f}')
-    
-    def _plot_confusion_matrix(self, model, model_name, y_pred):
-        cm = confusion_matrix(self.y_test, y_pred)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=model.classes_, yticklabels=model.classes_)
-        plt.title(f'Confusion Matrix for {model_name}')
-        plt.xlabel('Predicted')
-        plt.ylabel('Actual')
-        plt.show()
+        os.makedirs(MODELS_DIRECTORY, mode=0o777, exist_ok=True)
+        for name, Classifier in self.selected_models.items():
+            np.random.seed(42)
+            model = Classifier()
+
+            # Cross-validation metrics on the training set
+            x_val_scores=cross_validate(model, self.X, self.y, cv=kf,scoring=scoring,return_train_score=True)
+
+            # Train the model and evaluate on the test set using cross_val_predict to get predictions
+            model.fit(self.X_train, self.y_train)
+            y_pred = model.predict(self.X_test)
+            y_pred_train = model.predict(self.X_train)
+            self.all_models.append(model)
+            self.save_model(model,f'{MODELS_DIRECTORY}/'+name)
+
+            cm = confusion_matrix(self.y_test, y_pred)
+
+            # Plot the confusion matrix
+
+            plt.figure()
+            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=model.classes_, yticklabels=model.classes_,
+                        annot_kws={"size":19,})
+            print(f'Confusion Matrix for {name}')
+            plt.xlabel('Predicted')
+            plt.ylabel('Actual')
+            plt.xticks(rotation=30,horizontalalignment='right')
+            plt.yticks(rotation=30,verticalalignment='top')
+
+            plt.tight_layout()
+            plt.savefig(f"./logs/matrix_{name}.pdf")
+
+            # Calculate metrics on the test set
+            #train
+            train_f1 = f1_score(self.y_train, y_pred_train, average='weighted')
+            train_precision = precision_score(self.y_train, y_pred_train, average='weighted')
+            train_recall = recall_score(self.y_train, y_pred_train, average='weighted')
+
+            #test
+            test_f1 = f1_score(self.y_test, y_pred, average='weighted')
+            test_precision = precision_score(self.y_test, y_pred, average='weighted')
+            test_recall = recall_score(self.y_test, y_pred, average='weighted')
+
+            # Append results
+            self.results.append({
+                "Model": name,
+                "Train F1-score": round(train_f1,3),
+                "Train Precision": round(train_precision,3),
+                "Train Recall": round(train_recall,3),
+                "Test F1-score": round(test_f1,3),
+                "Test Precision": round(test_precision,3),
+                "Test Recall": round(test_recall,3),
+                "Train Accuracy (Mean)": round(x_val_scores['train_accuracy'].mean(),3),
+                "Test Accuracy (Mean)": round(x_val_scores['test_accuracy'].mean(),3),
+                "Train Accuracy (Std)": round(x_val_scores['train_accuracy'].std(),3),
+                "Test Accuracy (Std)": round(x_val_scores['test_accuracy'].std(),3)
+            })
     
     def get_results(self):
         # Display the results as a DataFrame
@@ -120,3 +137,5 @@ if __name__=='__main__':
     data_path = sys.argv[1]
     me = ModelEvaluator(data_path,'Emotion')
     me.train_models()
+    print("Saving performance results in logs...")
+    me.get_results().to_csv("./logs/performance.csv")
