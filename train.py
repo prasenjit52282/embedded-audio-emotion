@@ -103,6 +103,7 @@ class ModelEvaluator:
             test_precision = precision_score(self.y_test, y_pred, average='weighted')
             test_recall = recall_score(self.y_test, y_pred, average='weighted')
 
+            # print(x_val_scores)
             # Append results
             self.results.append({
                 "Model": name,
@@ -112,10 +113,10 @@ class ModelEvaluator:
                 "Test F1-score": round(test_f1,3),
                 "Test Precision": round(test_precision,3),
                 "Test Recall": round(test_recall,3),
-                "Train Accuracy (Mean)": round(x_val_scores['train_accuracy'].mean(),3),
-                "Test Accuracy (Mean)": round(x_val_scores['test_accuracy'].mean(),3),
-                "Train Accuracy (Std)": round(x_val_scores['train_accuracy'].std(),3),
-                "Test Accuracy (Std)": round(x_val_scores['test_accuracy'].std(),3)
+                "Train F1-score (Mean)": round(x_val_scores['train_f1'].mean(),3),
+                "Test F1-score (Mean)": round(x_val_scores['test_f1'].mean(),3),
+                "Train F1-score (Std)": round(x_val_scores['train_f1'].std(),3),
+                "Test F1-score (Std)": round(x_val_scores['test_f1'].std(),3)
             })
     
     def get_results(self):
